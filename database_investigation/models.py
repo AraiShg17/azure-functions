@@ -7,27 +7,38 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class DatabaseQueryParameter(BaseModel):
+    """SQLへ渡す名前付きパラメータ。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    value: str = Field(description="SQLへ直接埋め込まずバインドする値")
+
+
 class DatabaseQuery(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    purpose: str = Field(min_length=1)
+    purpose: str
     selectedColumns: list[str] = Field(
-        min_length=1,
         description="調査に必要なため取得する列名",
     )
     dataMinimizationReason: str = Field(
-        min_length=1,
         description="取得列と取得範囲を必要最小限にした理由",
     )
-    sql: str = Field(min_length=1, description="名前付きパラメータを使う単一SELECT")
-    parameters: dict[str, str | int | float | bool | None]
+    sql: str = Field(description="名前付きパラメータを使う単一SELECT")
+    parameters: list[DatabaseQueryParameter]
+
+    def parameter_dict(self) -> dict[str, str]:
+        """PyMySQLへ渡せる辞書へ変換する。"""
+        return {parameter.name: parameter.value for parameter in self.parameters}
 
 
 class DatabaseQueryPlan(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    rationale: str = Field(min_length=1)
-    queries: list[DatabaseQuery] = Field(min_length=1, max_length=3)
+    rationale: str
+    queries: list[DatabaseQuery]
 
     def to_response_dict(self) -> dict[str, Any]:
         return self.model_dump()

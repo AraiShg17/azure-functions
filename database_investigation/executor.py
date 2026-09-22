@@ -56,7 +56,7 @@ def execute_plan(plan: DatabaseQueryPlan) -> list[dict[str, Any]]:
                 cursor.execute("START TRANSACTION READ ONLY")
                 results = []
                 for query in plan.queries:
-                    cursor.execute(query.sql, query.parameters)
+                    cursor.execute(query.sql, query.parameter_dict())
                     rows = list(cursor.fetchall())
                     results.append({
                         "purpose": query.purpose,

@@ -16,6 +16,7 @@ from database_investigation.assessor import (
 from database_investigation.models import (
     DatabaseInvestigationAssessment,
     DatabaseQuery,
+    DatabaseQueryParameter,
     DatabaseQueryPlan,
 )
 
@@ -40,7 +41,7 @@ def _plan() -> DatabaseQueryPlan:
             selectedColumns=["birth_date"],
             dataMinimizationReason="年齢算出元だけを確認するため",
             sql="SELECT birth_date FROM customers WHERE customer_id=%(id)s LIMIT 1",
-            parameters={"id": 1},
+            parameters=[DatabaseQueryParameter(name="id", value="1")],
         )],
     )
 

@@ -9,7 +9,11 @@ import azure.functions as func
 import pytest
 
 from database_investigation.handler import handle_investigate_database
-from database_investigation.models import DatabaseQuery, DatabaseQueryPlan
+from database_investigation.models import (
+    DatabaseQuery,
+    DatabaseQueryParameter,
+    DatabaseQueryPlan,
+)
 from database_investigation.models import DatabaseInvestigationAssessment
 from database_investigation.rag import allowed_tables, retrieve_schema_context
 from database_investigation.sql_guard import UnsafeQueryError, validate_query_plan
@@ -46,7 +50,7 @@ def _plan(sql: str = "SELECT birth_date FROM customers WHERE customer_id = %(id)
             selectedColumns=["birth_date"],
             dataMinimizationReason="年齢算出元だけを確認するため",
             sql=sql,
-            parameters={"id": 123},
+            parameters=[DatabaseQueryParameter(name="id", value="123")],
         )],
     )
 

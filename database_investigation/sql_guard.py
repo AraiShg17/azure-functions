@@ -31,7 +31,16 @@ def validate_query_plan(
     """全クエリが許可された単一SELECTであることを検証する。"""
     if not allowed:
         raise UnsafeQueryError("No tables are allowed")
+    if not plan.rationale.strip() or not 1 <= len(plan.queries) <= 3:
+        raise UnsafeQueryError("The query plan must contain one to three queries")
     for query in plan.queries:
+        if (
+            not query.purpose.strip()
+            or not query.dataMinimizationReason.strip()
+            or not query.selectedColumns
+            or any(not column.strip() for column in query.selectedColumns)
+        ):
+            raise UnsafeQueryError("Query metadata is incomplete")
         sql = query.sql.strip().rstrip(";").strip()
         if ";" in sql or "--" in sql or "/*" in sql or "#" in sql:
             raise UnsafeQueryError("Multiple statements or comments are not allowed")
@@ -44,7 +53,15 @@ def validate_query_plan(
         if not re.search(r"\bwhere\b", sql, re.IGNORECASE):
             raise UnsafeQueryError("A restrictive WHERE clause is required")
         placeholders = set(PLACEHOLDER.findall(sql))
-        if placeholders != set(query.parameters):
+        parameter_names = [parameter.name for parameter in query.parameters]
+        if any(
+            not re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]*", name)
+            for name in parameter_names
+        ):
+            raise UnsafeQueryError("An invalid SQL parameter name was found")
+        if len(parameter_names) != len(set(parameter_names)):
+            raise UnsafeQueryError("Duplicate SQL parameters are not allowed")
+        if placeholders != set(parameter_names):
             raise UnsafeQueryError("SQL placeholders and parameters do not match")
         tables = {name.lower() for name in TABLE_REF.findall(sql)}
         if not tables or not tables.issubset(allowed):
