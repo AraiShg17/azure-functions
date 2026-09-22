@@ -6,8 +6,34 @@ import json
 from typing import Any
 
 import azure.functions as func
+import pytest
 
 from backlog.handler import handle_create_backlog_issue
+from backlog.router import BacklogRouting
+
+
+@pytest.fixture(autouse=True)
+def _mock_routing_dependencies(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "backlog.handler.get_issue_types",
+        lambda: [{"id": 1, "name": "バグ"}, {"id": 2, "name": "タスク"}],
+    )
+    monkeypatch.setattr(
+        "backlog.handler.get_priorities",
+        lambda: [{"id": 3, "name": "中"}, {"id": 4, "name": "高"}],
+    )
+    monkeypatch.setattr(
+        "backlog.handler.select_routing",
+        lambda payload, issue_types, priorities: (
+            BacklogRouting(
+                issueTypeName="バグ",
+                priorityName="中",
+                rationale="障害だが影響範囲が不明なため",
+            ),
+            1,
+            3,
+        ),
+    )
 
 
 def _payload(*, dry_run: bool = True) -> dict[str, Any]:
@@ -68,6 +94,8 @@ def test_preview_contains_issue_sql_rows_and_assessment() -> None:
     assert response.status_code == 200
     assert body["mode"] == "preview"
     assert body["backlogIssue"]["summary"] == "[障害調査] 年齢が表示されない"
+    assert body["backlogIssue"]["issueType"] == "バグ"
+    assert body["backlogIssue"]["priority"] == "中"
     description = body["backlogIssue"]["description"]
     assert "シミュレーション（仮データ" in description
     assert "SELECT customer_id, birth_date" in description
@@ -86,7 +114,7 @@ def test_preview_does_not_call_backlog(monkeypatch) -> None:
 def test_create_returns_issue_key(monkeypatch) -> None:
     monkeypatch.setattr(
         "backlog.handler.create_issue",
-        lambda summary, description: {
+        lambda summary, description, **kwargs: {
             "id": 123,
             "issueKey": "INC-10",
             "summary": summary,

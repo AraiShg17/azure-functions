@@ -185,11 +185,13 @@ Azure Function Appには次を設定します。APIキーはKey Vaultへ保存�
 ```text
 BACKLOG_BASE_URL=https://<スペース名>.backlog.com
 BACKLOG_API_KEY=<Key Vault参照>
-BACKLOG_PROJECT_ID=<数値ID>
-BACKLOG_ISSUE_TYPE_ID=<数値ID>
-BACKLOG_PRIORITY_ID=<数値ID>
+BACKLOG_PROJECT_KEY=INCIDENT_MANAGEMENT_PJ
 BACKLOG_TIMEOUT_SECONDS=15
 ```
+
+課題種別と優先度は固定設定しません。FunctionがBacklog APIから登録先で利用可能な
+選択肢と内部IDを取得し、課題・一次分析・DB調査結果をAIへ渡して選択します。AIが返した
+名前が実在する選択肢かを検査してから、対応する内部IDで課題を登録します。
 
 Power AutomateではDB調査のTrue分岐にあるHTTPアクションの直後へ、もう一つHTTP
 アクションを追加してこのFunctionを呼びます。Function Keyは従来どおり

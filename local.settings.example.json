@@ -16,9 +16,7 @@
     "DB_SSL": "false",
     "BACKLOG_BASE_URL": "https://your-space.backlog.com",
     "BACKLOG_API_KEY": "replace-with-your-backlog-api-key",
-    "BACKLOG_PROJECT_ID": "replace-with-project-id",
-    "BACKLOG_ISSUE_TYPE_ID": "replace-with-issue-type-id",
-    "BACKLOG_PRIORITY_ID": "replace-with-priority-id",
+    "BACKLOG_PROJECT_KEY": "INCIDENT_MANAGEMENT_PJ",
     "BACKLOG_TIMEOUT_SECONDS": "15"
   }
 }
