@@ -12,6 +12,7 @@
     "DB_USER": "incident_reader",
     "DB_PASSWORD": "replace-with-a-read-only-password",
     "DB_TIMEOUT_SECONDS": "10",
+    "DB_MAX_ROWS": "20",
     "DB_SSL": "false"
   }
 }

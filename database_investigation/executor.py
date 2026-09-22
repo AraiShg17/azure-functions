@@ -57,9 +57,12 @@ def execute_plan(plan: DatabaseQueryPlan) -> list[dict[str, Any]]:
                 results = []
                 for query in plan.queries:
                     cursor.execute(query.sql, query.parameters)
+                    rows = list(cursor.fetchall())
                     results.append({
                         "purpose": query.purpose,
-                        "rows": list(cursor.fetchall()),
+                        "selectedColumns": query.selectedColumns,
+                        "rowCount": len(rows),
+                        "rows": rows,
                     })
                 connection.rollback()
                 return results

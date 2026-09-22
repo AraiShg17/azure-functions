@@ -11,6 +11,14 @@ class DatabaseQuery(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     purpose: str = Field(min_length=1)
+    selectedColumns: list[str] = Field(
+        min_length=1,
+        description="調査に必要なため取得する列名",
+    )
+    dataMinimizationReason: str = Field(
+        min_length=1,
+        description="取得列と取得範囲を必要最小限にした理由",
+    )
     sql: str = Field(min_length=1, description="名前付きパラメータを使う単一SELECT")
     parameters: dict[str, str | int | float | bool | None]
 

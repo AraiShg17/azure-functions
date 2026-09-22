@@ -43,6 +43,8 @@ def _plan(sql: str = "SELECT birth_date FROM customers WHERE customer_id = %(id)
         rationale="生年月日を確認する",
         queries=[DatabaseQuery(
             purpose="生年月日の確認",
+            selectedColumns=["birth_date"],
+            dataMinimizationReason="年齢算出元だけを確認するため",
             sql=sql,
             parameters={"id": 123},
         )],
@@ -73,7 +75,9 @@ def test_rag_retrieves_customer_schema() -> None:
     "SELECT * FROM customers; DROP TABLE customers",
     "SELECT * FROM secrets LIMIT 10",
     "SELECT * FROM customers",
-    "SELECT * FROM customers LIMIT 101",
+    "SELECT birth_date FROM customers WHERE customer_id = %(id)s LIMIT 21",
+    "SELECT * FROM customers WHERE customer_id = %(id)s LIMIT 10",
+    "SELECT birth_date FROM customers LIMIT 10",
 ])
 def test_sql_guard_rejects_unsafe_queries(sql: str) -> None:
     with pytest.raises(UnsafeQueryError):
@@ -118,7 +122,12 @@ def test_execute_mode_returns_database_rows(monkeypatch: pytest.MonkeyPatch) -> 
     )
     monkeypatch.setattr(
         "database_investigation.handler.execute_plan",
-        lambda plan: [{"purpose": "生年月日の確認", "rows": [{"birth_date": "1990-01-01"}]}],
+        lambda plan: [{
+            "purpose": "生年月日の確認",
+            "selectedColumns": ["birth_date"],
+            "rowCount": 1,
+            "rows": [{"birth_date": "1990-01-01"}],
+        }],
     )
     monkeypatch.setattr(
         "database_investigation.handler.assess_database_results",

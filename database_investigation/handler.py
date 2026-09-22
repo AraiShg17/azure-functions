@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 
 from azure.functions import HttpRequest, HttpResponse
 
@@ -57,7 +58,13 @@ def handle_investigate_database(req: HttpRequest) -> HttpResponse:
         context = retrieve_schema_context(search_text)
         plan = create_query_plan(incident, data["questions"], context)
         tables = allowed_tables(context)
-        validate_query_plan(plan, tables)
+        try:
+            max_rows = int(os.getenv("DB_MAX_ROWS", "20"))
+        except ValueError as exc:
+            raise DatabaseConfigurationError("Invalid DB_MAX_ROWS") from exc
+        if not 1 <= max_rows <= 100:
+            raise DatabaseConfigurationError("DB_MAX_ROWS must be between 1 and 100")
+        validate_query_plan(plan, tables, max_rows=max_rows)
         results = execute_plan(plan) if data["execute"] else None
         assessment = (
             assess_database_results(
@@ -76,6 +83,7 @@ def handle_investigate_database(req: HttpRequest) -> HttpResponse:
             "mode": "executed" if data["execute"] else "planOnly",
             "retrievedContextIds": [chunk["id"] for chunk in context],
             "allowedTables": sorted(tables),
+            "maxRowsPerQuery": max_rows,
             "queryPlan": plan.to_response_dict(),
             "queryResults": results,
             "databaseInvestigation": (

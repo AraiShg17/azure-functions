@@ -139,12 +139,15 @@ DB_NAME=incident_poc
 DB_USER=incident_reader
 DB_PASSWORD=<Key Vault参照>
 DB_TIMEOUT_SECONDS=10
+DB_MAX_ROWS=20
 DB_SSL=true
 ```
 
-AI生成SQLに対し、単一のSELECT、テーブル許可リスト、禁止キーワード、最大100行の
-LIMITを検査します。DB実行時にも読み取り専用トランザクションを開始します。最終的な
-防御として、DB側で`incident_reader`へSELECT以外の権限を付与しないでください。
+AI生成SQLに対し、単一のSELECT、テーブル許可リスト、禁止キーワード、WHERE句、
+名前付きパラメータ、`SELECT *`の禁止、最大20行のLIMITを検査します。SQL計画には
+取得列と、その列だけが必要な理由も含まれます。DB実行時にも読み取り専用トランザクションを
+開始します。最終的な防御として、DB側で`incident_reader`へSELECT以外の権限を付与
+しないでください。
 
 ## ローカル起動
 

@@ -19,13 +19,14 @@ FORBIDDEN = re.compile(
 TABLE_REF = re.compile(r"\b(?:from|join)\s+`?([a-zA-Z0-9_]+)`?", re.IGNORECASE)
 LIMIT = re.compile(r"\blimit\s+(\d+)\s*$", re.IGNORECASE)
 PLACEHOLDER = re.compile(r"%\(([a-zA-Z_][a-zA-Z0-9_]*)\)s")
+SELECT_STAR = re.compile(r"\bselect\s+(?:distinct\s+)?(?:[a-zA-Z0-9_]+\.)?\*", re.IGNORECASE)
 
 
 def validate_query_plan(
     plan: DatabaseQueryPlan,
     allowed: set[str],
     *,
-    max_rows: int = 100,
+    max_rows: int = 20,
 ) -> None:
     """全クエリが許可された単一SELECTであることを検証する。"""
     if not allowed:
@@ -34,10 +35,14 @@ def validate_query_plan(
         sql = query.sql.strip().rstrip(";").strip()
         if ";" in sql or "--" in sql or "/*" in sql or "#" in sql:
             raise UnsafeQueryError("Multiple statements or comments are not allowed")
-        if not re.match(r"^(select|with)\b", sql, re.IGNORECASE):
+        if not re.match(r"^select\b", sql, re.IGNORECASE):
             raise UnsafeQueryError("Only SELECT queries are allowed")
         if FORBIDDEN.search(sql):
             raise UnsafeQueryError("A forbidden SQL keyword was found")
+        if SELECT_STAR.search(sql):
+            raise UnsafeQueryError("SELECT * is not allowed")
+        if not re.search(r"\bwhere\b", sql, re.IGNORECASE):
+            raise UnsafeQueryError("A restrictive WHERE clause is required")
         placeholders = set(PLACEHOLDER.findall(sql))
         if placeholders != set(query.parameters):
             raise UnsafeQueryError("SQL placeholders and parameters do not match")

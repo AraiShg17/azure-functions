@@ -37,6 +37,8 @@ def _plan() -> DatabaseQueryPlan:
         rationale="生年月日を確認",
         queries=[DatabaseQuery(
             purpose="生年月日確認",
+            selectedColumns=["birth_date"],
+            dataMinimizationReason="年齢算出元だけを確認するため",
             sql="SELECT birth_date FROM customers WHERE customer_id=%(id)s LIMIT 1",
             parameters={"id": 1},
         )],
