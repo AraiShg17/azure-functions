@@ -296,12 +296,13 @@ def test_validation_failure_does_not_log_description(caplog: pytest.LogCaptureFi
 
 def test_function_registration() -> None:
     functions = app.get_functions()
-    assert len(functions) == 3
+    assert len(functions) == 4
     registered = {function.get_function_name(): function for function in functions}
     assert set(registered) == {
         "receive_incident",
         "investigate_database",
         "create_backlog_issue",
+        "investigate_repository",
     }
     trigger = registered["receive_incident"].get_trigger().get_dict_repr()
     assert trigger["route"] == "receive_incident"
@@ -317,3 +318,8 @@ def test_function_registration() -> None:
     assert backlog_trigger["route"] == "create_backlog_issue"
     assert backlog_trigger["methods"] == [func.HttpMethod.POST]
     assert backlog_trigger["authLevel"] == func.AuthLevel.FUNCTION
+
+    repository_trigger = registered["investigate_repository"].get_trigger().get_dict_repr()
+    assert repository_trigger["route"] == "investigate_repository"
+    assert repository_trigger["methods"] == [func.HttpMethod.POST]
+    assert repository_trigger["authLevel"] == func.AuthLevel.FUNCTION

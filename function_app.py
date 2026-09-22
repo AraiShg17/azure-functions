@@ -5,6 +5,7 @@ import azure.functions as func
 from incident.handler import handle_receive_incident
 from database_investigation.handler import handle_investigate_database
 from backlog.handler import handle_create_backlog_issue
+from repository_investigation.handler import handle_investigate_repository
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
@@ -25,3 +26,9 @@ def investigate_database(req: func.HttpRequest) -> func.HttpResponse:
 def create_backlog_issue(req: func.HttpRequest) -> func.HttpResponse:
     """障害調査結果を整形し、必要に応じてBacklogへ起票する。"""
     return handle_create_backlog_issue(req)
+
+
+@app.route(route="investigate_repository", methods=["POST"])
+def investigate_repository(req: func.HttpRequest) -> func.HttpResponse:
+    """障害情報とDB調査結果を元にGitHubリポジトリを調査する。"""
+    return handle_investigate_repository(req)

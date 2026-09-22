@@ -17,6 +17,11 @@
     "BACKLOG_BASE_URL": "https://your-space.backlog.com",
     "BACKLOG_API_KEY": "replace-with-your-backlog-api-key",
     "BACKLOG_PROJECT_KEY": "INCIDENT_MANAGEMENT_PJ",
-    "BACKLOG_TIMEOUT_SECONDS": "15"
+    "BACKLOG_TIMEOUT_SECONDS": "15",
+    "GITHUB_TOKEN": "replace-with-a-fine-grained-token",
+    "GITHUB_OWNER": "AraiShg17",
+    "GITHUB_REPOSITORY": "azure-functions-sample-code",
+    "GITHUB_BASE_BRANCH": "master",
+    "GITHUB_TIMEOUT_SECONDS": "15"
   }
 }

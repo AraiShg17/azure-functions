@@ -197,6 +197,25 @@ Power AutomateではDB調査のTrue分岐にあるHTTPアクションの直後�
 アクションを追加してこのFunctionを呼びます。Function Keyは従来どおり
 `x-functions-key`ヘッダーへ設定します。
 
+## GitHubリポジトリ調査Function
+
+`POST /api/investigate_repository`は、障害、一次分析、DB調査結果から検索語を生成し、
+GitHub Code SearchとContents APIで関連コードだけを取得してAIで原因を調査します。
+取得上限は検索語8個、ファイル15個、1ファイル100KB、合計500KB、コード断片20個です。
+`node_modules`、`vendor`、ビルド成果物、バイナリ、ロックファイルなどは除外します。
+
+```text
+GITHUB_OWNER=AraiShg17
+GITHUB_REPOSITORY=azure-functions-sample-code
+GITHUB_BASE_BRANCH=master
+GITHUB_TOKEN=<Key Vault参照>
+GITHUB_TIMEOUT_SECONDS=15
+```
+
+この段階は読み取り専用です。Fine-grained personal access tokenまたはGitHub Appには、
+対象リポジトリの`Contents: Read`と`Metadata: Read`だけを付与します。ブランチ作成、
+コミット、PR作成は調査結果を確認した後の別段階で実装します。
+
 ## ローカル起動
 
 [Azure Functions Core Tools v4](https://learn.microsoft.com/azure/azure-functions/functions-run-local) と
