@@ -22,6 +22,7 @@ def _mock_routing_dependencies(monkeypatch: pytest.MonkeyPatch) -> None:
         "backlog.handler.get_priorities",
         lambda: [{"id": 3, "name": "中"}, {"id": 4, "name": "高"}],
     )
+    monkeypatch.setattr("backlog.handler.get_project_id", lambda: 12345)
     monkeypatch.setattr(
         "backlog.handler.select_routing",
         lambda payload, issue_types, priorities: (

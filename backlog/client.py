@@ -30,7 +30,7 @@ def _settings() -> tuple[str, str, str, float]:
     return base_url, api_key, project_key, timeout
 
 
-def _get_json(path: str) -> list[dict]:
+def _get_json(path: str) -> list[dict] | dict:
     base_url, api_key, _, timeout = _settings()
     request = Request(
         f"{base_url}{path}",
@@ -42,32 +42,46 @@ def _get_json(path: str) -> list[dict]:
             value = json.loads(response.read().decode("utf-8"))
     except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
         raise BacklogServiceError("Backlog request failed") from exc
-    if not isinstance(value, list):
-        raise BacklogServiceError("Unexpected Backlog response")
     return value
 
 
 def get_issue_types() -> list[dict]:
     """登録先プロジェクトで利用可能な課題種別を取得する。"""
     _, _, project_key, _ = _settings()
-    return _get_json(f"/api/v2/projects/{quote(project_key, safe='')}/issueTypes")
+    value = _get_json(f"/api/v2/projects/{quote(project_key, safe='')}/issueTypes")
+    if not isinstance(value, list):
+        raise BacklogServiceError("Unexpected issue types response")
+    return value
 
 
 def get_priorities() -> list[dict]:
     """利用可能な優先度を取得する。"""
-    return _get_json("/api/v2/priorities")
+    value = _get_json("/api/v2/priorities")
+    if not isinstance(value, list):
+        raise BacklogServiceError("Unexpected priorities response")
+    return value
+
+
+def get_project_id() -> int:
+    """プロジェクトキーに対応するBacklog内部数値IDを取得する。"""
+    _, _, project_key, _ = _settings()
+    value = _get_json(f"/api/v2/projects/{quote(project_key, safe='')}")
+    if not isinstance(value, dict) or not isinstance(value.get("id"), int):
+        raise BacklogServiceError("Unexpected project response")
+    return value["id"]
 
 
 def create_issue(
     summary: str,
     description: str,
     *,
+    project_id: int,
     issue_type_id: int,
     priority_id: int,
 ) -> dict:
-    base_url, api_key, project_key, timeout = _settings()
+    base_url, api_key, _, timeout = _settings()
     data = urlencode({
-        "projectId": project_key,
+        "projectId": project_id,
         "summary": summary,
         "description": description,
         "issueTypeId": issue_type_id,

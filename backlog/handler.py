@@ -13,6 +13,7 @@ from backlog.client import (
     create_issue,
     get_issue_types,
     get_priorities,
+    get_project_id,
 )
 from backlog.formatter import format_backlog_issue
 from backlog.parser import BacklogValidationError, parse_backlog_request
@@ -62,6 +63,7 @@ def handle_create_backlog_issue(req: HttpRequest) -> HttpResponse:
         issue = create_issue(
             summary,
             description,
+            project_id=get_project_id(),
             issue_type_id=issue_type_id,
             priority_id=priority_id,
         )
