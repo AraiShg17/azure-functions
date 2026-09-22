@@ -48,6 +48,7 @@ def select_routing(
         "databaseAssessment": payload["databaseInvestigation"].get(
             "databaseInvestigation"
         ),
+        "repositoryWork": payload.get("repositoryWork"),
         "availableIssueTypes": list(type_map),
         "availablePriorities": list(priority_map),
     }

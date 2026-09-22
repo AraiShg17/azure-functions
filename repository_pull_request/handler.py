@@ -67,7 +67,12 @@ def handle_create_repository_pull_request(req: HttpRequest) -> HttpResponse:
         review = review_changes(data, proposal)
         result = create_pull_request(str(data["incident"]["id"]), proposal, review, editable)
         logger.info("リポジトリ修正PRの処理が正常に完了しました")
-        return _response({"success": True, "mode": "created" if result["created"] else "existing", "pullRequest": result}, 201 if result["created"] else 200)
+        return _response({
+            "success": True,
+            "mode": "created" if result["created"] else "existing",
+            "repositoryInvestigation": assessment,
+            "pullRequest": result,
+        }, 201 if result["created"] else 200)
     except PullRequestValidationError as exc:
         return _response({"success": False, "message": exc.message}, 400)
     except UnsafeChangeError:

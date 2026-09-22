@@ -35,6 +35,54 @@ def _query_sections(plan: dict[str, Any], results: list[dict[str, Any]]) -> str:
     return "\n\n".join(sections) if sections else "SQLは生成されていません。"
 
 
+def _repository_section(repository_work: dict[str, Any] | None) -> str:
+    if not repository_work:
+        return "## GitHub調査・修正\nGitHub調査は実施されていません。"
+    assessment = repository_work.get("repositoryInvestigation") or {}
+    pull_request = repository_work.get("pullRequest") or {}
+    findings = assessment.get("findings") or []
+    finding_text = _lines([
+        f"{item.get('file')}:{item.get('line')} - {item.get('finding')}（根拠: {item.get('evidence')}）"
+        for item in findings if isinstance(item, dict)
+    ])
+    if pull_request:
+        pr_text = (
+            f"- URL: {pull_request.get('url', '')}\n"
+            f"- PR番号: #{pull_request.get('number', '')}\n"
+            f"- 作業ブランチ: {pull_request.get('branch', '')}\n"
+            f"- 変更ファイル:\n{_lines(pull_request.get('changedFiles'))}"
+        )
+        review = pull_request.get("review") or {}
+        review_text = (
+            f"**AIレビュー**\n{review.get('summary', '')}\n\n"
+            f"**レビュー確認事項**\n{_lines(review.get('issues'))}\n\n"
+            f"**レビュー判定**\n{review.get('verdict', '')}"
+        )
+    else:
+        pr_text = f"- PR未作成: {repository_work.get('message', '原因未特定または修正対象なし')}"
+        review_text = ""
+    return f"""## GitHub調査・修正
+**調査結果**
+{assessment.get('summary', '')}
+
+**疑われるコード上の原因**
+{assessment.get('likelyCause') or '特定できていません。'}
+
+**確認した根拠**
+{finding_text}
+
+**推奨変更**
+{_lines(assessment.get('recommendedChanges'))}
+
+**確信度**
+{assessment.get('confidence', 0)}
+
+**Pull Request**
+{pr_text}
+
+{review_text}"""
+
+
 def format_backlog_issue(payload: dict[str, Any]) -> tuple[str, str]:
     """Backlogの件名と説明を生成する。"""
     incident = payload["incident"]
@@ -43,6 +91,7 @@ def format_backlog_issue(payload: dict[str, Any]) -> tuple[str, str]:
     plan = investigation.get("queryPlan") or {}
     results = investigation.get("queryResults") or []
     assessment = investigation.get("databaseInvestigation") or {}
+    repository_section = _repository_section(payload.get("repositoryWork"))
     simulated = investigation.get("mode") == "simulated"
     source_label = (
         "シミュレーション（仮データ。実DBの調査結果ではありません）"
@@ -91,5 +140,7 @@ def format_backlog_issue(payload: dict[str, Any]) -> tuple[str, str]:
 
 **確信度**
 {assessment.get('confidence', 0)}
+
+{repository_section}
 """
     return summary, description

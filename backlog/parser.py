@@ -45,6 +45,9 @@ def parse_backlog_request(req: HttpRequest) -> dict[str, Any]:
         investigation.get("databaseInvestigation"),
         "databaseInvestigation.databaseInvestigation",
     )
+    repository_work = body.get("repositoryWork")
+    if repository_work is not None:
+        body["repositoryWork"] = _object(repository_work, "repositoryWork")
     dry_run = body.get("dryRun", True)
     if not isinstance(dry_run, bool):
         raise BacklogValidationError("dryRun must be a boolean")

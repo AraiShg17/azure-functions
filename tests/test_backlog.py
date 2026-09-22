@@ -76,6 +76,23 @@ def _payload(*, dry_run: bool = True) -> dict[str, Any]:
                 "confidence": 0.9,
             },
         },
+        "repositoryWork": {
+            "success": True,
+            "repositoryInvestigation": {
+                "summary": "NULL時に空欄を返す処理を確認した",
+                "findings": [{"file": "src/customer.py", "line": 52, "finding": "空文字を返す", "evidence": "return ''"}],
+                "likelyCause": "NULL時の表示処理",
+                "recommendedChanges": ["未登録表示に変更する"],
+                "confidence": 0.9,
+            },
+            "pullRequest": {
+                "number": 3,
+                "url": "https://github.com/example/repo/pull/3",
+                "branch": "fix/incident-12",
+                "changedFiles": ["src/customer.py"],
+                "review": {"summary": "修正は妥当", "issues": ["テスト確認"], "verdict": "COMMENT"},
+            },
+        },
         "dryRun": dry_run,
     }
 
@@ -102,6 +119,9 @@ def test_preview_contains_issue_sql_rows_and_assessment() -> None:
     assert "SELECT customer_id, birth_date" in description
     assert '"birth_date": null' in description
     assert "birth_dateがNULLのため年齢を算出できない" in description
+    assert "https://github.com/example/repo/pull/3" in description
+    assert "src/customer.py:52" in description
+    assert "修正は妥当" in description
 
 
 def test_preview_does_not_call_backlog(monkeypatch) -> None:
