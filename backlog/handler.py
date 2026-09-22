@@ -1,0 +1,65 @@
+"""Backlog起票HTTPハンドラー。"""
+
+from __future__ import annotations
+
+import json
+import logging
+
+from azure.functions import HttpRequest, HttpResponse
+
+from backlog.client import (
+    BacklogConfigurationError,
+    BacklogServiceError,
+    create_issue,
+)
+from backlog.formatter import format_backlog_issue
+from backlog.parser import BacklogValidationError, parse_backlog_request
+
+logger = logging.getLogger(__name__)
+
+
+def _response(body: dict, status: int) -> HttpResponse:
+    return HttpResponse(
+        json.dumps(body, ensure_ascii=False, default=str),
+        status_code=status,
+        mimetype="application/json",
+        charset="utf-8",
+        headers={"Content-Type": "application/json; charset=utf-8"},
+    )
+
+
+def handle_create_backlog_issue(req: HttpRequest) -> HttpResponse:
+    """起票内容をプレビューし、dryRun=falseならBacklogへ登録する。"""
+    logger.info("Backlog起票リクエストを受け付けました")
+    try:
+        data = parse_backlog_request(req)
+        summary, description = format_backlog_issue(data)
+        if data["dryRun"]:
+            logger.info("Backlog起票内容のプレビューを生成しました")
+            return _response({
+                "success": True,
+                "mode": "preview",
+                "backlogIssue": {"summary": summary, "description": description},
+            }, 200)
+        issue = create_issue(summary, description)
+        logger.info("Backlog課題を作成しました")
+        return _response({
+            "success": True,
+            "mode": "created",
+            "backlogIssue": {
+                "id": issue.get("id"),
+                "issueKey": issue.get("issueKey"),
+                "summary": issue.get("summary", summary),
+            },
+        }, 201)
+    except BacklogValidationError as exc:
+        return _response({"success": False, "message": exc.message}, 400)
+    except BacklogConfigurationError:
+        logger.error("Backlog起票が異常終了しました: 設定エラー")
+        return _response({"success": False, "message": "Backlogの設定が完了していません"}, 500)
+    except BacklogServiceError:
+        logger.error("Backlog起票が異常終了しました: APIエラー")
+        return _response({"success": False, "message": "Backlogへの課題登録に失敗しました"}, 502)
+    except Exception:
+        logger.error("Backlog起票が異常終了しました: 想定外のエラー")
+        return _response({"success": False, "message": "内部サーバーエラーが発生しました"}, 500)

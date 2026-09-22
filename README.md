@@ -152,6 +152,49 @@ AI生成SQLに対し、単一のSELECT、テーブル許可リスト、禁止キ
 開始します。最終的な防御として、DB側で`incident_reader`へSELECT以外の権限を付与
 しないでください。
 
+## Backlog起票Function
+
+`POST /api/create_backlog_issue` は、元の課題、一次分析、DB調査レスポンスからBacklogの
+件名と説明を生成します。説明には起票内容、AIが想定した状況、SQL、取得データ、疑われる
+原因と根拠を含めます。DB調査がシミュレーションの場合は、仮データであることを明記します。
+
+最初は必ず`dryRun: true`で呼び出してください。この場合はBacklogへ登録せず、完成した
+`backlogIssue.summary`と`backlogIssue.description`だけを返します。内容を確認したあと
+`dryRun: false`へ変更すると実際に課題を作成します。
+
+```json
+{
+  "incident": {
+    "id": "12",
+    "title": "年齢が表示されない",
+    "description": "特定ユーザーだけ年齢が空欄です"
+  },
+  "analysis": {
+    "summary": "特定ユーザーの年齢だけ表示されない",
+    "databaseQuestions": ["生年月日が登録されているか"],
+    "repositoryQuestions": ["年齢算出処理を確認する"]
+  },
+  "databaseInvestigation": "investigate_databaseのbody全体を指定",
+  "dryRun": true
+}
+```
+
+Azure Function Appには次を設定します。APIキーはKey Vaultへ保存し、環境変数
+`BACKLOG_API_KEY`から参照してください。
+
+```text
+BACKLOG_BASE_URL=https://<スペース名>.backlog.com
+BACKLOG_API_KEY=<Key Vault参照>
+BACKLOG_PROJECT_ID=<数値ID>
+BACKLOG_ISSUE_TYPE_ID=<数値ID>
+BACKLOG_PRIORITY_ID=<数値ID>
+BACKLOG_TIMEOUT_SECONDS=15
+```
+
+Power AutomateではDB調査のTrue分岐にあるHTTPアクションの直後へ、もう一つHTTP
+アクションを追加してこのFunctionを呼びます。Function Keyは従来どおり
+`x-functions-key`ヘッダーへ設定します。
+
 ## ローカル起動
 
 [Azure Functions Core Tools v4](https://learn.microsoft.com/azure/azure-functions/functions-run-local) と
