@@ -66,5 +66,5 @@ def test_does_not_create_pr_when_problem_is_not_identified(monkeypatch):
     ))
     monkeypatch.setattr("repository_pull_request.handler.fetch_files", lambda paths: (_ for _ in ()).throw(AssertionError()))
     response = handle_create_repository_pull_request(_request(_payload(False)))
-    assert response.status_code == 422
+    assert response.status_code == 200
     assert json.loads(response.get_body())["created"] is False

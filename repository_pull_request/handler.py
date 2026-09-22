@@ -52,10 +52,11 @@ def handle_create_repository_pull_request(req: HttpRequest) -> HttpResponse:
         data["repositoryAssessment"] = assessment
         if assessment_model.problemIdentified is not True:
             return _response({
-                "success": False, "created": False,
+                "success": True, "mode": "investigatedNoPr", "created": False,
                 "message": "原因が特定されていないためPRを作成しません",
                 "repositoryInvestigation": assessment,
-            }, 422)
+                "pullRequest": None,
+            }, 200)
         paths = ["AGENTS.md"]
         paths += [item.get("file", "") for item in assessment.get("findings", []) if isinstance(item, dict)]
         paths += inspected_files
