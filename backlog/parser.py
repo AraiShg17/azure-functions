@@ -36,8 +36,21 @@ def parse_backlog_request(req: HttpRequest) -> dict[str, Any]:
             raise BacklogValidationError(f"incident.{field} is required")
     body["incident"] = incident
     body["analysis"] = _object(body.get("analysis"), "analysis")
-    investigation = _object(body.get("databaseInvestigation"), "databaseInvestigation")
+    raw_investigation = body.get("databaseInvestigation")
+    if raw_investigation in (None, ""):
+        investigation = {
+            "mode": "skipped",
+            "queryPlan": {},
+            "queryResults": [],
+            "databaseInvestigation": {},
+        }
+    else:
+        investigation = _object(raw_investigation, "databaseInvestigation")
     body["databaseInvestigation"] = investigation
+    if investigation.get("mode") == "skipped":
+        investigation.setdefault("queryPlan", {})
+        investigation.setdefault("queryResults", [])
+        investigation.setdefault("databaseInvestigation", {})
     _object(investigation.get("queryPlan"), "databaseInvestigation.queryPlan")
     if not isinstance(investigation.get("queryResults"), list):
         raise BacklogValidationError("databaseInvestigation.queryResults must be an array")

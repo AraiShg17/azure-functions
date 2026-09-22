@@ -93,10 +93,12 @@ def format_backlog_issue(payload: dict[str, Any]) -> tuple[str, str]:
     assessment = investigation.get("databaseInvestigation") or {}
     repository_section = _repository_section(payload.get("repositoryWork"))
     simulated = investigation.get("mode") == "simulated"
-    source_label = (
-        "シミュレーション（仮データ。実DBの調査結果ではありません）"
-        if simulated else "実DB（読み取り専用接続）"
-    )
+    if investigation.get("mode") == "skipped":
+        source_label = "未実施（一次分析でDB調査不要と判定）"
+    elif simulated:
+        source_label = "シミュレーション（仮データ。実DBの調査結果ではありません）"
+    else:
+        source_label = "実DB（読み取り専用接続）"
     summary = f"[障害調査] {incident['title']}"
     description = f"""## 起票された課題
 - SharePoint項目ID: {incident['id']}

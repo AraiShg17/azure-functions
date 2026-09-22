@@ -152,7 +152,20 @@ def test_rejects_missing_investigation() -> None:
     payload = _payload()
     del payload["databaseInvestigation"]
     response = handle_create_backlog_issue(_request(payload))
-    assert response.status_code == 400
+    assert response.status_code == 200
+    description = json.loads(response.get_body())["backlogIssue"]["description"]
+    assert "未実施（一次分析でDB調査不要と判定）" in description
+
+
+def test_accepts_no_database_or_repository_work() -> None:
+    payload = _payload()
+    payload.pop("databaseInvestigation")
+    payload.pop("repositoryWork")
+    response = handle_create_backlog_issue(_request(payload))
+    description = json.loads(response.get_body())["backlogIssue"]["description"]
+    assert response.status_code == 200
+    assert "DB調査不要と判定" in description
+    assert "GitHub調査は実施されていません" in description
 
 
 def test_accepts_database_investigation_as_json_string() -> None:
