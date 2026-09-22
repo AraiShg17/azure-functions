@@ -68,3 +68,20 @@ def test_does_not_create_pr_when_problem_is_not_identified(monkeypatch):
     response = handle_create_repository_pull_request(_request(_payload(False)))
     assert response.status_code == 200
     assert json.loads(response.get_body())["created"] is False
+
+
+def test_accepts_empty_database_investigation(monkeypatch):
+    from repository_investigation.models import RepositoryAssessment, RepositorySearchPlan
+    payload = _payload()
+    payload["databaseInvestigation"] = ""
+    captured = {}
+    monkeypatch.setattr("repository_pull_request.handler.create_search_plan", lambda data: (
+        captured.update(data) or RepositorySearchPlan(rationale="調査", searchTerms=["title"])
+    ))
+    monkeypatch.setattr("repository_pull_request.handler.search_and_fetch", lambda terms: ([], []))
+    monkeypatch.setattr("repository_pull_request.handler.assess_repository", lambda *args: RepositoryAssessment(
+        summary="不明", findings=[], likelyCause=None, problemIdentified=False, recommendedChanges=[], confidence=0,
+    ))
+    response = handle_create_repository_pull_request(_request(payload))
+    assert response.status_code == 200
+    assert captured["databaseInvestigation"]["mode"] == "skipped"
