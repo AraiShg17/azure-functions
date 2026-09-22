@@ -29,13 +29,9 @@ def parse_pull_request(req: HttpRequest) -> dict:
         raise PullRequestValidationError("JSON body is required") from exc
     body = _object(body, "body")
     result = {}
-    for name in ("incident", "analysis", "databaseInvestigation", "repositoryInvestigation"):
+    for name in ("incident", "analysis", "databaseInvestigation"):
         result[name] = _object(body.get(name), name)
     incident = result["incident"]
     if not str(incident.get("id", "")).strip() or not str(incident.get("title", "")).strip():
         raise PullRequestValidationError("incident.id and incident.title are required")
-    investigation = result["repositoryInvestigation"]
-    if isinstance(investigation.get("repositoryInvestigation"), dict):
-        investigation = investigation["repositoryInvestigation"]
-    result["repositoryAssessment"] = _object(investigation, "repositoryInvestigation.repositoryInvestigation")
     return result
