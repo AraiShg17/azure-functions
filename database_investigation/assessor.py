@@ -37,6 +37,8 @@ def assess_database_results(
     context: list[dict[str, Any]],
     plan: DatabaseQueryPlan,
     results: list[dict[str, Any]],
+    *,
+    simulated: bool = False,
 ) -> DatabaseInvestigationAssessment:
     """DB取得結果を元の障害内容と突き合わせて精査する。"""
     api_key = os.getenv("OPENAI_API_KEY", "").strip()
@@ -54,11 +56,15 @@ def assess_database_results(
         "retrievedSchemaContext": context,
         "executedQueryPlan": plan.model_dump(),
         "queryResults": results,
+        "dataSource": "simulated" if simulated else "database",
     }
+    instructions = INSTRUCTIONS
+    if simulated:
+        instructions += "\n取得結果は動作確認用の仮データです。考察もシミュレーションであることをsummaryへ明記してください。"
     try:
         response = OpenAI(api_key=api_key, timeout=timeout).responses.parse(
             model=model,
-            instructions=INSTRUCTIONS,
+            instructions=instructions,
             input=json.dumps(payload, ensure_ascii=False, default=str),
             text_format=DatabaseInvestigationAssessment,
             store=False,

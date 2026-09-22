@@ -30,6 +30,7 @@ from database_investigation.planner import (
 )
 from database_investigation.rag import allowed_tables, retrieve_schema_context
 from database_investigation.sql_guard import UnsafeQueryError, validate_query_plan
+from database_investigation.simulator import simulate_plan
 
 logger = logging.getLogger(__name__)
 
@@ -65,30 +66,27 @@ def handle_investigate_database(req: HttpRequest) -> HttpResponse:
         if not 1 <= max_rows <= 100:
             raise DatabaseConfigurationError("DB_MAX_ROWS must be between 1 and 100")
         validate_query_plan(plan, tables, max_rows=max_rows)
-        results = execute_plan(plan) if data["execute"] else None
-        assessment = (
-            assess_database_results(
-                incident,
-                data["questions"],
-                context,
-                plan,
-                results,
-            )
-            if results is not None
-            else None
+        simulated = not data["execute"]
+        results = simulate_plan(plan) if simulated else execute_plan(plan)
+        assessment = assess_database_results(
+            incident,
+            data["questions"],
+            context,
+            plan,
+            results,
+            simulated=simulated,
         )
         logger.info("DB調査が正常に完了しました")
         return _response({
             "success": True,
-            "mode": "executed" if data["execute"] else "planOnly",
+            "mode": "simulated" if simulated else "executed",
+            "dataSource": "sampleData" if simulated else "database",
             "retrievedContextIds": [chunk["id"] for chunk in context],
             "allowedTables": sorted(tables),
             "maxRowsPerQuery": max_rows,
             "queryPlan": plan.to_response_dict(),
             "queryResults": results,
-            "databaseInvestigation": (
-                assessment.to_response_dict() if assessment is not None else None
-            ),
+            "databaseInvestigation": assessment.to_response_dict(),
         }, 200)
     except InvestigationValidationError as exc:
         logger.warning("DB調査が異常終了しました: 入力エラー")

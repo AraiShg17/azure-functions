@@ -103,10 +103,11 @@ Power AutomateのTrue分岐から、次の形式で送信します。
 }
 ```
 
-`execute: false`（既定）では、RAG検索、SQL計画生成、安全性検査まで行い、DBへは
-接続しません。`execute: true` の場合だけ、設定済みの読み取り専用MySQLアカウントで
-SQLを実行します。取得結果は元の障害情報、DB調査質問、関連DB仕様とともに再度AIへ
-渡し、原因、根拠、問題特定の成否、リポジトリ調査要否、推奨対応を構造化JSONで返します。
+`execute: false`（既定）はシミュレーションモードです。RAG検索、SQL計画生成、安全性
+検査を行い、実DBには接続せず、明示的なサンプル行を取得結果として使用します。
+`execute: true`の場合だけ、設定済みの読み取り専用MySQLアカウントでSQLを実行します。
+どちらのモードでも取得結果を元の障害情報、DB調査質問、関連DB仕様とともに再度AIへ渡し、
+原因、根拠、問題特定の成否、リポジトリ調査要否、推奨対応を構造化JSONで返します。
 
 ```json
 {
@@ -122,7 +123,9 @@ SQLを実行します。取得結果は元の障害情報、DB調査質問、関
 }
 ```
 
-`execute: false`では`queryResults`と`databaseInvestigation`はいずれも`null`です。
+`execute: false`のレスポンスは`mode: simulated`、`dataSource: sampleData`となり、各結果にも
+`simulated: true`が付きます。考察のsummaryにも仮データによるシミュレーションであることを
+明記させます。本番データの調査結果として扱わないでください。
 
 サンプルRAGデータは`rag_data/database_schema.json`です。テーブル定義、列の意味、
 業務ルール、検索キーワード、参照許可テーブルをチャンク単位で記録しています。

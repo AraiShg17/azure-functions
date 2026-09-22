@@ -98,7 +98,7 @@ def test_sql_guard_rejects_parameter_mismatch() -> None:
         validate_query_plan(plan, {"customers"})
 
 
-def test_plan_only_response_does_not_connect_to_database(
+def test_simulation_response_does_not_connect_to_database(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
@@ -109,13 +109,28 @@ def test_plan_only_response_does_not_connect_to_database(
         "database_investigation.handler.execute_plan",
         lambda plan: pytest.fail("DB must not be called in planOnly mode"),
     )
+    monkeypatch.setattr(
+        "database_investigation.handler.simulate_plan",
+        lambda plan: [{
+            "purpose": "生年月日の確認",
+            "selectedColumns": ["birth_date"],
+            "rowCount": 1,
+            "rows": [{"birth_date": None}],
+            "simulated": True,
+        }],
+    )
+    monkeypatch.setattr(
+        "database_investigation.handler.assess_database_results",
+        lambda incident, questions, context, plan, results, simulated: _assessment(),
+    )
     response = handle_investigate_database(_request(_payload()))
     body = json.loads(response.get_body())
     assert response.status_code == 200
     assert body["success"] is True
-    assert body["mode"] == "planOnly"
-    assert body["queryResults"] is None
-    assert body["databaseInvestigation"] is None
+    assert body["mode"] == "simulated"
+    assert body["dataSource"] == "sampleData"
+    assert body["queryResults"][0]["simulated"] is True
+    assert body["databaseInvestigation"] == _assessment().model_dump()
     assert "customers" in body["allowedTables"]
 
 
@@ -135,12 +150,13 @@ def test_execute_mode_returns_database_rows(monkeypatch: pytest.MonkeyPatch) -> 
     )
     monkeypatch.setattr(
         "database_investigation.handler.assess_database_results",
-        lambda incident, questions, context, plan, results: _assessment(),
+        lambda incident, questions, context, plan, results, simulated: _assessment(),
     )
     response = handle_investigate_database(_request(_payload(execute=True)))
     body = json.loads(response.get_body())
     assert response.status_code == 200
     assert body["mode"] == "executed"
+    assert body["dataSource"] == "database"
     assert body["queryResults"][0]["rows"][0]["birth_date"] == "1990-01-01"
     assert body["databaseInvestigation"] == _assessment().model_dump()
 
