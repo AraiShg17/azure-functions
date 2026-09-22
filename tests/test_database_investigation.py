@@ -10,6 +10,7 @@ import pytest
 
 from database_investigation.handler import handle_investigate_database
 from database_investigation.models import DatabaseQuery, DatabaseQueryPlan
+from database_investigation.models import DatabaseInvestigationAssessment
 from database_investigation.rag import allowed_tables, retrieve_schema_context
 from database_investigation.sql_guard import UnsafeQueryError, validate_query_plan
 
@@ -45,6 +46,18 @@ def _plan(sql: str = "SELECT birth_date FROM customers WHERE customer_id = %(id)
             sql=sql,
             parameters={"id": 123},
         )],
+    )
+
+
+def _assessment() -> DatabaseInvestigationAssessment:
+    return DatabaseInvestigationAssessment(
+        summary="対象顧客の生年月日が登録されていない",
+        likelyCause="birth_dateがNULLのため年齢を計算できない",
+        evidence=["customers.birth_dateがNULL"],
+        problemIdentified=True,
+        needsRepositoryInvestigation=False,
+        recommendedActions=["生年月日の登録経路を確認する"],
+        confidence=0.92,
     )
 
 
@@ -94,6 +107,7 @@ def test_plan_only_response_does_not_connect_to_database(
     assert body["success"] is True
     assert body["mode"] == "planOnly"
     assert body["queryResults"] is None
+    assert body["databaseInvestigation"] is None
     assert "customers" in body["allowedTables"]
 
 
@@ -106,11 +120,16 @@ def test_execute_mode_returns_database_rows(monkeypatch: pytest.MonkeyPatch) -> 
         "database_investigation.handler.execute_plan",
         lambda plan: [{"purpose": "生年月日の確認", "rows": [{"birth_date": "1990-01-01"}]}],
     )
+    monkeypatch.setattr(
+        "database_investigation.handler.assess_database_results",
+        lambda incident, questions, context, plan, results: _assessment(),
+    )
     response = handle_investigate_database(_request(_payload(execute=True)))
     body = json.loads(response.get_body())
     assert response.status_code == 200
     assert body["mode"] == "executed"
     assert body["queryResults"][0]["rows"][0]["birth_date"] == "1990-01-01"
+    assert body["databaseInvestigation"] == _assessment().model_dump()
 
 
 def test_description_is_not_logged(

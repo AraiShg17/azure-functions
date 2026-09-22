@@ -7,6 +7,12 @@ import logging
 
 from azure.functions import HttpRequest, HttpResponse
 
+from database_investigation.assessor import (
+    AssessmentConfigurationError,
+    AssessmentServiceError,
+    assess_database_results,
+)
+
 from database_investigation.executor import (
     DatabaseConfigurationError,
     DatabaseExecutionError,
@@ -29,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 def _response(body: dict, status: int) -> HttpResponse:
     return HttpResponse(
-        json.dumps(body, ensure_ascii=False),
+        json.dumps(body, ensure_ascii=False, default=str),
         status_code=status,
         mimetype="application/json",
         charset="utf-8",
@@ -53,6 +59,17 @@ def handle_investigate_database(req: HttpRequest) -> HttpResponse:
         tables = allowed_tables(context)
         validate_query_plan(plan, tables)
         results = execute_plan(plan) if data["execute"] else None
+        assessment = (
+            assess_database_results(
+                incident,
+                data["questions"],
+                context,
+                plan,
+                results,
+            )
+            if results is not None
+            else None
+        )
         logger.info("DB調査が正常に完了しました")
         return _response({
             "success": True,
@@ -61,16 +78,26 @@ def handle_investigate_database(req: HttpRequest) -> HttpResponse:
             "allowedTables": sorted(tables),
             "queryPlan": plan.to_response_dict(),
             "queryResults": results,
+            "databaseInvestigation": (
+                assessment.to_response_dict() if assessment is not None else None
+            ),
         }, 200)
     except InvestigationValidationError as exc:
         logger.warning("DB調査が異常終了しました: 入力エラー")
         return _response({"success": False, "message": exc.message}, 400)
-    except (PlanningConfigurationError, DatabaseConfigurationError):
+    except (
+        PlanningConfigurationError,
+        AssessmentConfigurationError,
+        DatabaseConfigurationError,
+    ):
         logger.error("DB調査が異常終了しました: 設定エラー")
         return _response({"success": False, "message": "DB調査の設定が完了していません"}, 500)
     except PlanningServiceError:
         logger.error("DB調査が異常終了しました: AIエラー")
         return _response({"success": False, "message": "DB調査計画の生成に失敗しました"}, 502)
+    except AssessmentServiceError:
+        logger.error("DB調査が異常終了しました: DB結果精査AIエラー")
+        return _response({"success": False, "message": "DB調査結果の精査に失敗しました"}, 502)
     except UnsafeQueryError:
         logger.error("DB調査が異常終了しました: SQL安全性検査エラー")
         return _response({"success": False, "message": "安全でないSQL計画を拒否しました"}, 422)

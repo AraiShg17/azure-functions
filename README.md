@@ -105,7 +105,24 @@ Power AutomateのTrue分岐から、次の形式で送信します。
 
 `execute: false`（既定）では、RAG検索、SQL計画生成、安全性検査まで行い、DBへは
 接続しません。`execute: true` の場合だけ、設定済みの読み取り専用MySQLアカウントで
-SQLを実行します。
+SQLを実行します。取得結果は元の障害情報、DB調査質問、関連DB仕様とともに再度AIへ
+渡し、原因、根拠、問題特定の成否、リポジトリ調査要否、推奨対応を構造化JSONで返します。
+
+```json
+{
+  "databaseInvestigation": {
+    "summary": "対象顧客の生年月日が登録されていません",
+    "likelyCause": "birth_dateがNULLのため年齢を算出できません",
+    "evidence": ["customers.birth_dateがNULL"],
+    "problemIdentified": true,
+    "needsRepositoryInvestigation": false,
+    "recommendedActions": ["生年月日の登録経路を確認する"],
+    "confidence": 0.92
+  }
+}
+```
+
+`execute: false`では`queryResults`と`databaseInvestigation`はいずれも`null`です。
 
 サンプルRAGデータは`rag_data/database_schema.json`です。テーブル定義、列の意味、
 業務ルール、検索キーワード、参照許可テーブルをチャンク単位で記録しています。
