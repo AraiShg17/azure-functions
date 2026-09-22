@@ -44,10 +44,12 @@ def _settings() -> tuple[str, str, str, str, float]:
     return token, owner, repository, branch, timeout
 
 
-def _request(path: str) -> dict[str, Any]:
+def api_request(method: str, path: str, payload: dict[str, Any] | None = None) -> Any:
     token, _, _, _, timeout = _settings()
     request = Request(
         f"https://api.github.com{path}",
+        method=method,
+        data=None if payload is None else json.dumps(payload).encode("utf-8"),
         headers={
             "Authorization": f"Bearer {token}",
             "Accept": "application/vnd.github+json",
@@ -60,6 +62,11 @@ def _request(path: str) -> dict[str, Any]:
             value = json.loads(response.read().decode("utf-8"))
     except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
         raise GitHubServiceError("GitHub request failed") from exc
+    return value
+
+
+def _request(path: str) -> dict[str, Any]:
+    value = api_request("GET", path)
     if not isinstance(value, dict):
         raise GitHubServiceError("Unexpected GitHub response")
     return value
@@ -124,3 +131,27 @@ def search_and_fetch(terms: list[str]) -> tuple[list[str], list[dict[str, Any]]]
         if len(snippets) >= 20:
             break
     return paths, snippets
+
+
+def fetch_files(paths: list[str]) -> list[dict[str, Any]]:
+    """ベースブランチ上の既存テキストファイルだけを最大5件取得する。"""
+    _, owner, repository, branch, _ = _settings()
+    result_files = []
+    total = 0
+    for path in list(dict.fromkeys(paths))[:5]:
+        if not _allowed_path(path):
+            continue
+        value = _request(
+            f"/repos/{quote(owner)}/{quote(repository)}/contents/{quote(path, safe='/')}?"
+            + urlencode({"ref": branch})
+        )
+        try:
+            raw = base64.b64decode(value.get("content", ""), validate=False)
+            content = raw.decode("utf-8")
+        except (ValueError, UnicodeDecodeError):
+            continue
+        if len(raw) > 100_000 or total + len(raw) > 300_000:
+            continue
+        total += len(raw)
+        result_files.append({"path": path, "sha": value.get("sha"), "content": content})
+    return result_files

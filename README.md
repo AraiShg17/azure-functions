@@ -335,3 +335,14 @@ tests/
 ```
 
 将来 OpenAI 連携などを追加する場合は、`incident/` 配下に処理モジュールを追加し、`handler.py` から呼び出す構成を想定しています。
+# Azure Functions Incident Investigation PoC
+
+主なHTTP Function:
+
+- `receive_incident`: 障害内容の一次分析
+- `investigate_database`: DB調査計画、限定SELECT、結果分析
+- `investigate_repository`: GitHubコードの読み取り調査
+- `create_repository_pull_request`: 原因特定済みの調査結果から作業ブランチへ修正をコミットし、ドラフトPRとAIレビューコメントを作成
+- `create_backlog_issue`: 調査結果をBacklogへ起票
+
+`create_repository_pull_request` は `GITHUB_BASE_BRANCH` を直接更新しません。更新対象は調査時に取得済みの既存ファイル最大3件に限定され、ブランチ名は `fix/incident-<ID>` です。
