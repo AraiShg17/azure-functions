@@ -132,3 +132,13 @@ def test_rejects_missing_investigation() -> None:
     del payload["databaseInvestigation"]
     response = handle_create_backlog_issue(_request(payload))
     assert response.status_code == 400
+
+
+def test_accepts_database_investigation_as_json_string() -> None:
+    payload = _payload()
+    payload["databaseInvestigation"] = json.dumps(
+        payload["databaseInvestigation"], ensure_ascii=False
+    )
+    response = handle_create_backlog_issue(_request(payload))
+    assert response.status_code == 200
+    assert json.loads(response.get_body())["mode"] == "preview"

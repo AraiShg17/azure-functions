@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from azure.functions import HttpRequest
@@ -13,6 +14,11 @@ class BacklogValidationError(Exception):
 
 
 def _object(value: Any, name: str) -> dict[str, Any]:
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except json.JSONDecodeError as exc:
+            raise BacklogValidationError(f"{name} must be an object") from exc
     if not isinstance(value, dict):
         raise BacklogValidationError(f"{name} must be an object")
     return value
@@ -28,8 +34,10 @@ def parse_backlog_request(req: HttpRequest) -> dict[str, Any]:
     for field in ("id", "title", "description"):
         if not isinstance(incident.get(field), str) or not incident[field].strip():
             raise BacklogValidationError(f"incident.{field} is required")
-    _object(body.get("analysis"), "analysis")
+    body["incident"] = incident
+    body["analysis"] = _object(body.get("analysis"), "analysis")
     investigation = _object(body.get("databaseInvestigation"), "databaseInvestigation")
+    body["databaseInvestigation"] = investigation
     _object(investigation.get("queryPlan"), "databaseInvestigation.queryPlan")
     if not isinstance(investigation.get("queryResults"), list):
         raise BacklogValidationError("databaseInvestigation.queryResults must be an array")
