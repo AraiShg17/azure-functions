@@ -82,6 +82,53 @@ python -m pytest
 python -m pytest -v
 ```
 
+## DB調査Function（想定実装）
+
+`POST /api/investigate_database` は一次分析でDB調査が必要と判断された場合に使用します。
+Power AutomateのTrue分岐から、次の形式で送信します。
+
+```json
+{
+  "incident": {
+    "id": "12",
+    "title": "年齢が表示されない",
+    "description": "特定ユーザーだけ年齢が空欄です"
+  },
+  "analysis": {
+    "databaseQuestions": [
+      "対象ユーザーの生年月日が登録されているか"
+    ]
+  },
+  "execute": false
+}
+```
+
+`execute: false`（既定）では、RAG検索、SQL計画生成、安全性検査まで行い、DBへは
+接続しません。`execute: true` の場合だけ、設定済みの読み取り専用MySQLアカウントで
+SQLを実行します。
+
+サンプルRAGデータは`rag_data/database_schema.json`です。テーブル定義、列の意味、
+業務ルール、検索キーワード、参照許可テーブルをチャンク単位で記録しています。
+検索処理は`database_investigation/rag.py`に分離しているため、後からベクトル検索へ
+差し替えられます。
+
+DB実行時は次の環境変数を設定します。`DB_USER`にはSELECT権限だけを付与した専用
+ユーザーを指定し、パスワードは本番環境ではKey Vault参照にします。
+
+```text
+DB_HOST
+DB_PORT=3306
+DB_NAME=incident_poc
+DB_USER=incident_reader
+DB_PASSWORD=<Key Vault参照>
+DB_TIMEOUT_SECONDS=10
+DB_SSL=true
+```
+
+AI生成SQLに対し、単一のSELECT、テーブル許可リスト、禁止キーワード、最大100行の
+LIMITを検査します。DB実行時にも読み取り専用トランザクションを開始します。最終的な
+防御として、DB側で`incident_reader`へSELECT以外の権限を付与しないでください。
+
 ## ローカル起動
 
 [Azure Functions Core Tools v4](https://learn.microsoft.com/azure/azure-functions/functions-run-local) と

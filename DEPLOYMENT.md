@@ -49,6 +49,10 @@ Azure Portal で Runtime v4、Python 3.12、Linux、Flex 従量課金、
 func azure functionapp publish func-ashdevlab-incident-poc
 ```
 
+DB調査を実行する段階では、Function Appの環境変数へ`DB_HOST`、`DB_PORT`、
+`DB_NAME`、`DB_USER`、`DB_PASSWORD`、`DB_TIMEOUT_SECONDS`、`DB_SSL`を追加します。
+`DB_PASSWORD`はKey Vault参照を使用します。SQL計画だけを確認する間はDB設定不要です。
+
 Python の依存はリモートビルドで Linux 用に構築します。
 macOS の `.venv` やローカル設定をアップロードする必要はありません。
 `--publish-local-settings` は付けません。

@@ -1,0 +1,37 @@
+[
+  {
+    "id": "customers",
+    "title": "顧客基本情報",
+    "keywords": ["顧客", "ユーザー", "年齢", "生年月日", "氏名", "会員"],
+    "allowedTables": ["customers"],
+    "content": "customersテーブル: customer_id BIGINT主キー、display_name VARCHAR(100)、birth_date DATE NULL可、status ENUM('active','suspended','deleted')、created_at DATETIME、updated_at DATETIME。年齢は保存せずbirth_dateから算出する。deletedの顧客は通常画面に表示しない。"
+  },
+  {
+    "id": "customer_profiles",
+    "title": "顧客プロフィールと公開設定",
+    "keywords": ["顧客", "ユーザー", "プロフィール", "年齢", "公開", "非表示", "マスキング"],
+    "allowedTables": ["customers", "customer_profiles"],
+    "content": "customer_profilesテーブル: customer_id BIGINT主キーでcustomers.customer_idを参照、show_age BOOLEAN NOT NULL DEFAULT TRUE、nickname VARCHAR(100) NULL可、updated_at DATETIME。show_age=falseの場合、一覧画面では年齢を非表示にする。"
+  },
+  {
+    "id": "pages",
+    "title": "CMSページ管理",
+    "keywords": ["ページ", "URL", "404", "公開", "サイト", "ルート"],
+    "allowedTables": ["pages"],
+    "content": "pagesテーブル: page_id BIGINT主キー、path VARCHAR(255)一意、title VARCHAR(200)、publish_status ENUM('draft','published','archived')、published_at DATETIME NULL可、deleted_at DATETIME NULL可。公開ページはpublish_status='published'かつdeleted_at IS NULLである必要がある。"
+  },
+  {
+    "id": "orders",
+    "title": "注文情報",
+    "keywords": ["注文", "決済", "購入", "金額", "ステータス"],
+    "allowedTables": ["orders", "customers"],
+    "content": "ordersテーブル: order_id BIGINT主キー、customer_id BIGINT、status ENUM('pending','paid','cancelled','failed')、total_amount DECIMAL(12,2)、ordered_at DATETIME。customer_idはcustomersを参照する。"
+  },
+  {
+    "id": "audit_logs",
+    "title": "監査ログ",
+    "keywords": ["更新", "変更", "履歴", "監査", "操作"],
+    "allowedTables": ["audit_logs"],
+    "content": "audit_logsテーブル: audit_id BIGINT主キー、entity_type VARCHAR(50)、entity_id VARCHAR(100)、action VARCHAR(50)、actor_id VARCHAR(100)、created_at DATETIME。個人情報の本文は保持しない。"
+  }
+]

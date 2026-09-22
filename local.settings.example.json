@@ -5,6 +5,13 @@
     "FUNCTIONS_WORKER_RUNTIME": "python",
     "OPENAI_API_KEY": "replace-with-your-api-key",
     "OPENAI_MODEL": "replace-with-an-available-model",
-    "OPENAI_TIMEOUT_SECONDS": "30"
+    "OPENAI_TIMEOUT_SECONDS": "30",
+    "DB_HOST": "localhost",
+    "DB_PORT": "3306",
+    "DB_NAME": "incident_poc",
+    "DB_USER": "incident_reader",
+    "DB_PASSWORD": "replace-with-a-read-only-password",
+    "DB_TIMEOUT_SECONDS": "10",
+    "DB_SSL": "false"
   }
 }
