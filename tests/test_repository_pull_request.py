@@ -33,7 +33,8 @@ def test_creates_pr_only_from_identified_existing_files(monkeypatch):
     )
     review = PullRequestReview(summary="妥当", issues=[], verdict="COMMENT")
     from repository_investigation.models import RepositoryAssessment, RepositoryFinding, RepositorySearchPlan
-    monkeypatch.setattr("repository_pull_request.handler.create_search_plan", lambda data: RepositorySearchPlan(rationale="調査", searchTerms=["age"]))
+    monkeypatch.setattr("repository_pull_request.handler.fetch_repository_guide", lambda: "# map")
+    monkeypatch.setattr("repository_pull_request.handler.create_search_plan", lambda data, guide: RepositorySearchPlan(rationale="調査", searchTerms=["age"]))
     monkeypatch.setattr("repository_pull_request.handler.search_and_fetch", lambda terms: (["src/customer.py"], [{"path": "src/customer.py", "content": "return ''"}]))
     monkeypatch.setattr("repository_pull_request.handler.assess_repository", lambda *args: RepositoryAssessment(
         summary="原因特定", findings=[RepositoryFinding(file="src/customer.py", line=10, finding="空文字", evidence="return ''")],
@@ -59,7 +60,8 @@ def test_creates_pr_only_from_identified_existing_files(monkeypatch):
 
 def test_does_not_create_pr_when_problem_is_not_identified(monkeypatch):
     from repository_investigation.models import RepositoryAssessment, RepositorySearchPlan
-    monkeypatch.setattr("repository_pull_request.handler.create_search_plan", lambda data: RepositorySearchPlan(rationale="調査", searchTerms=["age"]))
+    monkeypatch.setattr("repository_pull_request.handler.fetch_repository_guide", lambda: "# map")
+    monkeypatch.setattr("repository_pull_request.handler.create_search_plan", lambda data, guide: RepositorySearchPlan(rationale="調査", searchTerms=["age"]))
     monkeypatch.setattr("repository_pull_request.handler.search_and_fetch", lambda terms: ([], []))
     monkeypatch.setattr("repository_pull_request.handler.assess_repository", lambda *args: RepositoryAssessment(
         summary="不明", findings=[], likelyCause=None, problemIdentified=False, recommendedChanges=[], confidence=0,
@@ -75,7 +77,8 @@ def test_accepts_empty_database_investigation(monkeypatch):
     payload = _payload()
     payload["databaseInvestigation"] = ""
     captured = {}
-    monkeypatch.setattr("repository_pull_request.handler.create_search_plan", lambda data: (
+    monkeypatch.setattr("repository_pull_request.handler.fetch_repository_guide", lambda: "# map")
+    monkeypatch.setattr("repository_pull_request.handler.create_search_plan", lambda data, guide: (
         captured.update(data) or RepositorySearchPlan(rationale="調査", searchTerms=["title"])
     ))
     monkeypatch.setattr("repository_pull_request.handler.search_and_fetch", lambda terms: ([], []))

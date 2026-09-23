@@ -10,6 +10,7 @@ class RepositorySearchPlan(BaseModel):
 
     rationale: str
     searchTerms: list[str] = Field(min_length=1, max_length=8)
+    candidateFiles: list[str] = Field(default_factory=list, max_length=8)
 
 
 class RepositoryFinding(BaseModel):

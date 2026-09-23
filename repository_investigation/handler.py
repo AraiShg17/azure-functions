@@ -15,6 +15,8 @@ from repository_investigation.assessor import (
 from repository_investigation.github_client import (
     GitHubConfigurationError,
     GitHubServiceError,
+    fetch_planned_files,
+    fetch_repository_guide,
     search_and_fetch,
 )
 from repository_investigation.parser import (
@@ -44,8 +46,12 @@ def handle_investigate_repository(req: HttpRequest) -> HttpResponse:
     logger.info("リポジトリ調査リクエストを受け付けました")
     try:
         data = parse_repository_request(req)
-        plan = create_search_plan(data)
-        inspected_files, snippets = search_and_fetch(plan.searchTerms)
+        repository_guide = fetch_repository_guide()
+        plan = create_search_plan(data, repository_guide)
+        if plan.candidateFiles:
+            inspected_files, snippets = fetch_planned_files(plan.candidateFiles)
+        else:
+            inspected_files, snippets = search_and_fetch(plan.searchTerms)
         assessment = assess_repository(data, plan, snippets)
         logger.info("リポジトリ調査が正常に完了しました")
         return _response({
@@ -58,6 +64,7 @@ def handle_investigate_repository(req: HttpRequest) -> HttpResponse:
                 "maxSnippets": 20,
             },
             "searchPlan": plan.model_dump(),
+            "repositoryGuide": "sitemap.md",
             "inspectedFiles": inspected_files,
             "codeSnippets": [
                 {key: value for key, value in snippet.items() if key != "content"}

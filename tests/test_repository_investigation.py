@@ -46,13 +46,15 @@ def test_repository_investigation_returns_traceable_result(monkeypatch) -> None:
     plan = RepositorySearchPlan(
         rationale="年齢算出元を探す",
         searchTerms=["birth_date", "show_age"],
+        candidateFiles=["src/customer.py"],
     )
     monkeypatch.setattr(
-        "repository_investigation.handler.create_search_plan", lambda data: plan
+        "repository_investigation.handler.create_search_plan", lambda data, guide: plan
     )
+    monkeypatch.setattr("repository_investigation.handler.fetch_repository_guide", lambda: "# map")
     monkeypatch.setattr(
-        "repository_investigation.handler.search_and_fetch",
-        lambda terms: (
+        "repository_investigation.handler.fetch_planned_files",
+        lambda paths: (
             ["src/customer.py"],
             [{
                 "path": "src/customer.py",
@@ -61,6 +63,10 @@ def test_repository_investigation_returns_traceable_result(monkeypatch) -> None:
                 "content": "if birth_date is None: return ''",
             }],
         ),
+    )
+    monkeypatch.setattr(
+        "repository_investigation.handler.search_and_fetch",
+        lambda terms: (_ for _ in ()).throw(AssertionError("sitemap paths must be preferred")),
     )
     monkeypatch.setattr(
         "repository_investigation.handler.assess_repository",
@@ -82,6 +88,8 @@ def test_repository_investigation_returns_traceable_result(monkeypatch) -> None:
     body = json.loads(response.get_body())
     assert response.status_code == 200
     assert body["searchPlan"]["searchTerms"] == ["birth_date", "show_age"]
+    assert body["searchPlan"]["candidateFiles"] == ["src/customer.py"]
+    assert body["repositoryGuide"] == "sitemap.md"
     assert body["inspectedFiles"] == ["src/customer.py"]
     assert body["codeSnippets"] == [{
         "path": "src/customer.py", "startLine": 40, "endLine": 80,
@@ -95,8 +103,9 @@ def test_repository_request_accepts_stringified_db_result(monkeypatch) -> None:
     payload["databaseInvestigation"] = json.dumps(payload["databaseInvestigation"])
     monkeypatch.setattr(
         "repository_investigation.handler.create_search_plan",
-        lambda data: RepositorySearchPlan(rationale="調査", searchTerms=["age"]),
+        lambda data, guide: RepositorySearchPlan(rationale="調査", searchTerms=["age"]),
     )
+    monkeypatch.setattr("repository_investigation.handler.fetch_repository_guide", lambda: "# map")
     monkeypatch.setattr(
         "repository_investigation.handler.search_and_fetch", lambda terms: ([], [])
     )

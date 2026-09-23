@@ -133,12 +133,12 @@ def search_and_fetch(terms: list[str]) -> tuple[list[str], list[dict[str, Any]]]
     return paths, snippets
 
 
-def fetch_files(paths: list[str]) -> list[dict[str, Any]]:
-    """ベースブランチ上の既存テキストファイルだけを最大5件取得する。"""
+def fetch_files(paths: list[str], max_files: int = 5) -> list[dict[str, Any]]:
+    """ベースブランチ上の既存テキストファイルだけを制限付きで取得する。"""
     _, owner, repository, branch, _ = _settings()
     result_files = []
     total = 0
-    for path in list(dict.fromkeys(paths))[:5]:
+    for path in list(dict.fromkeys(paths))[:max_files]:
         if not _allowed_path(path):
             continue
         value = _request(
@@ -155,3 +155,23 @@ def fetch_files(paths: list[str]) -> list[dict[str, Any]]:
         total += len(raw)
         result_files.append({"path": path, "sha": value.get("sha"), "content": content})
     return result_files
+
+
+def fetch_repository_guide() -> str:
+    """ルートのsitemap.mdを取得する。存在しない場合はGitHubエラーとする。"""
+    files = fetch_files(["sitemap.md"])
+    if not files:
+        raise GitHubServiceError("sitemap.md was not found")
+    return files[0]["content"]
+
+
+def fetch_planned_files(paths: list[str]) -> tuple[list[str], list[dict[str, Any]]]:
+    """sitemapから選択されたファイルを直接取得し、調査用断片へ変換する。"""
+    files = fetch_files(paths, max_files=8)
+    snippets = [{
+        "path": item["path"],
+        "startLine": 1,
+        "endLine": len(item["content"].splitlines()),
+        "content": item["content"],
+    } for item in files]
+    return [item["path"] for item in files], snippets

@@ -9,6 +9,8 @@ from repository_investigation.github_client import (
     GitHubConfigurationError,
     GitHubServiceError,
     fetch_files,
+    fetch_planned_files,
+    fetch_repository_guide,
     search_and_fetch,
 )
 from repository_investigation.assessor import (
@@ -45,8 +47,12 @@ def handle_create_repository_pull_request(req: HttpRequest) -> HttpResponse:
     logger.info("リポジトリ修正PR作成リクエストを受け付けました")
     try:
         data = parse_pull_request(req)
-        plan = create_search_plan(data)
-        inspected_files, snippets = search_and_fetch(plan.searchTerms)
+        repository_guide = fetch_repository_guide()
+        plan = create_search_plan(data, repository_guide)
+        if plan.candidateFiles:
+            inspected_files, snippets = fetch_planned_files(plan.candidateFiles)
+        else:
+            inspected_files, snippets = search_and_fetch(plan.searchTerms)
         assessment_model = assess_repository(data, plan, snippets)
         assessment = assessment_model.model_dump()
         data["repositoryAssessment"] = assessment
